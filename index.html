@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linguistics Universe | 语言学宇宙</title>
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css?v=2">
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.0/dist/force-graph.min.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div id="stars"></div>
+    <div id="stars2"></div>
+    <div id="app">
+        <!-- Re-open sidebar button (floating) -->
+        <button id="open-sidebar-btn" class="hidden"><i class="fa-solid fa-bars"></i></button>
+
+        <!-- Navigation / TOC -->
+        <nav id="chapter-nav" class="sidebar-left closed">
+            <div class="nav-header">
+                <h2><i class="fa-solid fa-book-open"></i> <span data-lang="chapters">Chapters</span></h2>
+                <div class="nav-controls">
+                    <button id="pin-nav" class="nav-btn" title="Pin Sidebar"><i
+                            class="fa-solid fa-thumbtack"></i></button>
+                    <button id="close-nav" class="nav-btn"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div class="nav-content" id="chapter-list">
+                <!-- Chapter items injected here -->
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <main id="workspace">
+            <!-- Controls Overlay -->
+            <div id="controls-overlay">
+                <div class="search-box">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Search knowledge..." data-ph="searchPlaceholder">
+                </div>
+
+                <div class="filter-chips">
+                    <button class="chip-btn" data-req="识记" style="--c: #4cc9f0;">识记</button>
+                    <button class="chip-btn" data-req="领会" style="--c: #4361ee;">领会</button>
+                    <button class="chip-btn" data-req="简单应用" style="--c: #f72585;">简单应用</button>
+                    <button class="chip-btn" data-req="综合应用" style="--c: #e63946;">综合应用</button>
+                </div>
+
+                <div class="view-toggles">
+                    <button id="btn-reset" title="Reset View"><i class="fa-solid fa-compress-arrows-alt"></i></button>
+                    <button id="btn-zoom-in" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+                    <button id="btn-zoom-out" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+                    <div class="divider-vertical"></div>
+                    <button class="active" data-view="mindmap" title="Mind Map"><i
+                            class="fa-solid fa-project-diagram"></i></button>
+                    <button data-view="waterfall" title="List View"><i class="fa-solid fa-list-ul"></i></button>
+                    <button id="lang-toggle">EN / CN</button>
+                </div>
+            </div>
+
+            <!-- Visualization Container -->
+            <div id="graph-container"></div>
+
+            <!-- Waterfall Container (Hidden by default) -->
+            <div id="waterfall-container" class="hidden">
+                <div class="waterfall-content" id="waterfall-list"></div>
+            </div>
+        </main>
+
+        <!-- Details Sidebar -->
+        <aside id="detail-sidebar" class="sidebar-right hidden">
+            <div class="detail-header">
+                <h2 id="detail-title">Title</h2>
+                <div class="detail-meta">
+                    <span id="detail-id" class="badge">ID</span>
+                    <span id="detail-req" class="badge req-badge">Req</span>
+                </div>
+                <button id="close-detail"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="detail-body">
+                <div class="detail-section">
+                    <h3 data-lang="definition">Definition</h3>
+                    <div class="detail-card">
+                        <p id="detail-def-en" class="text-en"></p>
+                        <div class="divider"></div>
+                        <p id="detail-def-cn" class="text-cn"></p>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3 data-lang="example">Example</h3>
+                    <div class="detail-card">
+                        <p id="detail-ex-en" class="text-en"></p>
+                        <div class="divider"></div>
+                        <p id="detail-ex-cn" class="text-cn"></p>
+                    </div>
+                </div>
+
+                <div class="detail-section hidden" id="sub-points-section">
+                    <h3 data-lang="subPoints">Sub-Points</h3>
+                    <ul id="detail-subpoints"></ul>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="js/app.js?v=2"></script>
+</body>
+
+</html>
