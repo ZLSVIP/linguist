@@ -81,11 +81,20 @@ document.addEventListener('DOMContentLoaded', () => {
         els.openSidebarBtn = document.getElementById('open-sidebar-btn');
         els.closeNavBtn = document.getElementById('close-nav');
         els.pinNavBtn = document.getElementById('pin-nav');
+        
+        // Mobile check: Unpin by default
+        if (window.innerWidth <= 768) {
+            state.sidebarPinned = false;
+        }
+
         if (state.sidebarPinned) {
             document.body.classList.add('pinned');
             if (els.pinNavBtn) els.pinNavBtn.classList.add('active');
             if (els.chapterNav) els.chapterNav.classList.remove('closed');
             if (els.openSidebarBtn) els.openSidebarBtn.classList.add('hidden');
+        } else {
+            // Ensure closed on start if not pinned
+            if (els.chapterNav) els.chapterNav.classList.add('closed');
         }
 
         els.controls = {
