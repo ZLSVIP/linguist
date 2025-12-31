@@ -38,6 +38,35 @@ const state = {
     expandedNodes: new Set(['root'])
 };
 
+const translations = {
+    'CN': {
+        chapters: '章节目录',
+        definition: '定义',
+        example: '示例',
+        subPoints: '子知识点',
+        searchPlaceholder: '搜索知识点...',
+        req: {
+            '识记': '识记',
+            '领会': '领会',
+            '简单应用': '简单应用',
+            '综合应用': '综合应用'
+        }
+    },
+    'EN': {
+        chapters: 'Chapters',
+        definition: 'Definition',
+        example: 'Example',
+        subPoints: 'Sub-Points',
+        searchPlaceholder: 'Search knowledge...',
+        req: {
+            '识记': 'Memorize',
+            '领会': 'Understand',
+            '简单应用': 'Apply',
+            '综合应用': 'Analyze'
+        }
+    }
+};
+
 // DOM Elements Container
 const els = {
     app: null,
@@ -81,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         els.openSidebarBtn = document.getElementById('open-sidebar-btn');
         els.closeNavBtn = document.getElementById('close-nav');
         els.pinNavBtn = document.getElementById('pin-nav');
-        
+
         // Mobile check: Unpin by default
         if (window.innerWidth <= 768) {
             state.sidebarPinned = false;
@@ -90,12 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.sidebarPinned) {
             document.body.classList.add('pinned');
             if (els.pinNavBtn) els.pinNavBtn.classList.add('active');
-            if (els.chapterNav) els.chapterNav.classList.remove('closed');
-            if (els.openSidebarBtn) els.openSidebarBtn.classList.add('hidden');
-        } else {
-            // Ensure closed on start if not pinned
-            if (els.chapterNav) els.chapterNav.classList.add('closed');
         }
+
+        // Always ensure sidebar is open on load (User Request)
+        if (els.chapterNav) els.chapterNav.classList.remove('closed');
+        if (els.openSidebarBtn) els.openSidebarBtn.classList.remove('hidden');
 
         els.controls = {
             search: document.getElementById('search-input'),
@@ -105,8 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
             viewMindmap: document.querySelector('[data-view="mindmap"]'),
             viewWaterfall: document.querySelector('[data-view="waterfall"]'), // exportBtn removed
             btnReset: document.getElementById('btn-reset'),
-            btnZoomIn: document.getElementById('btn-zoom-in'),
-            btnZoomOut: document.getElementById('btn-zoom-out')
+            mobileSearchBtn: document.getElementById('mobile-search-btn'),
+            closeSearchBtn: document.getElementById('close-search-btn'),
+            mobileFilterBtn: document.getElementById('mobile-filter-btn'),
+            searchContainer: document.getElementById('search-container'),
+            filterChips: document.getElementById('filter-chips')
         };
 
         els.detail = {
@@ -131,12 +162,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     try {
-        const res = await fetch('data.json?t=' + new Date().getTime());
-        if (!res.ok) throw new Error("Fetch failed: " + res.status);
-        state.data = await res.json();
+        // Use embedded data
+        if (typeof LINGUIST_DATA !== 'undefined') {
+            state.data = LINGUIST_DATA;
+        } else {
+            // Fallback (though likely won't work if fetch failed before)
+            const res = await fetch('data.json?t=' + new Date().getTime());
+            if (!res.ok) throw new Error("Fetch failed: " + res.status);
+            state.data = await res.json();
+        }
 
         if (state.data && state.data.chapters) {
-            state.data.chapters.forEach(c => state.expandedNodes.add(`c-${c.id}`));
+            // Default: Only Root is expanded. Chapters are collapsed.
+            // state.data.chapters.forEach(c => state.expandedNodes.add(`c-${c.id}`)); 
         } else {
             throw new Error("Invalid Data Structure");
         }
@@ -152,13 +190,14 @@ async function initApp() {
         renderWaterfall();
         updateBilingualUI();
 
-        if (els.openSidebarBtn) els.openSidebarBtn.classList.remove('hidden');
+        // if (els.openSidebarBtn) els.openSidebarBtn.classList.remove('hidden');
 
     } catch (e) {
         console.error(e);
         if (els.app) {
             els.app.innerHTML = `<div style="padding:40px; color:white; font-size:18px;">
                 <h2>Application Error</h2>
+                <p>Could not load data. Please ensure data.js is loaded.</p>
                 <p>${e.message}</p>
              </div>`;
         }
@@ -216,13 +255,13 @@ function processGraphData() {
                     .substring(0, 3);
 
                 // FIX: Ensure globally unique ID
-                const uniqueKpId = `kp-${chapter.id}-${kp.id}`;
+                const uniqueKpId = `kp-${chapter.id}-${sec.id}-${kp.id}`;
 
                 nodes.push({
                     id: uniqueKpId,
                     name: kp.title_cn,
-                    name_en: kp.title_en,
-                    name_cn: kp.title_cn,
+                    name_en: kp.title_en || '',
+                    name_cn: kp.title_cn || '',
                     initials: initials,
                     val: 8,
                     color: reqColor,
@@ -253,9 +292,13 @@ function getFilteredGraphData() {
         if (!matchChapter) return false;
 
         if (n.type === 'point') {
-            const matchSearch = state.filters.search === '' ||
-                n.name_cn.includes(state.filters.search) ||
-                n.name_en.toLowerCase().includes(state.filters.search.toLowerCase());
+            const sVal = (state.filters.search || '').toLowerCase();
+            const nCn = (n.name_cn || '').toLowerCase();
+            const nEn = (n.name_en || '').toLowerCase();
+
+            const matchSearch = sVal === '' ||
+                nCn.includes(sVal) ||
+                nEn.includes(sVal);
 
             const matchReq = state.filters.req === 'all' || (n.raw && n.raw.requirement === state.filters.req);
 
@@ -283,6 +326,10 @@ function getFilteredGraphData() {
             const sId = typeof l.source === 'object' ? l.source.id : l.source;
             const tId = typeof l.target === 'object' ? l.target.id : l.target;
 
+            // toggleLang is handled by helper now
+            // if (els.controls.langToggle) els.controls.langToggle.addEventListener('click', toggleLang);
+
+            // Only add target if source is visible AND expanded
             if (visibleNodeIds.has(sId) && state.expandedNodes.has(sId)) {
                 if (nodes.find(n => n.id === tId)) {
                     visibleNodeIds.add(tId);
@@ -302,6 +349,12 @@ function getFilteredGraphData() {
 }
 
 function initUI() {
+    // Initial Sidebar State
+    if (window.innerWidth > 768) {
+        els.chapterNav.classList.remove('closed');
+    } else {
+        els.chapterNav.classList.add('closed');
+    }
 
     // Chip Buttons
     const chips = document.querySelectorAll('.chip-btn');
@@ -322,7 +375,58 @@ function initUI() {
         });
     });
 
-    if (els.controls.langToggle) els.controls.langToggle.addEventListener('click', toggleLang);
+    // Search Input Listener
+    if (els.controls.search) {
+        els.controls.search.addEventListener('input', (e) => {
+            state.filters.search = e.target.value.trim();
+
+            // Auto-switch to waterfall view if searching and not empty
+            if (state.filters.search && state.currentView !== 'waterfall') {
+                switchView('waterfall');
+            }
+
+            updateView();
+        });
+
+        els.controls.search.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission if any
+                state.filters.search = e.target.value.trim();
+
+                if (state.filters.search && state.currentView !== 'waterfall') {
+                    switchView('waterfall');
+                }
+
+                updateView();
+                // If in mindmap (unlikely due to switch above, but safe to keep), zoom. 
+                // In waterfall, maybe scroll to top?
+                if (state.currentView === 'mindmap' && Graph) Graph.zoomToFit(400);
+            }
+        });
+    }
+
+    // Handle Language Toggle
+    if (els.controls.langToggle) {
+        els.controls.langToggle.addEventListener('click', toggleLang);
+    }
+
+    // Handle Chapter Filter Interaction
+    if (els.controls.chapterFilterBtn) {
+        els.controls.chapterFilterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            els.controls.chapterDropdown.classList.toggle('hidden');
+        });
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+        if (els.controls.chapterDropdown && !els.controls.chapterDropdown.classList.contains('hidden')) {
+            if (!els.controls.chapterFilterBtn.contains(e.target) && !els.controls.chapterDropdown.contains(e.target)) {
+                els.controls.chapterDropdown.classList.add('hidden');
+            }
+        }
+    });
+
     if (els.controls.viewMindmap) els.controls.viewMindmap.addEventListener('click', () => switchView('mindmap'));
     if (els.controls.viewWaterfall) els.controls.viewWaterfall.addEventListener('click', () => switchView('waterfall'));
 
@@ -333,41 +437,61 @@ function initUI() {
         });
     }
 
-    if (els.controls.btnReset) {
-        els.controls.btnReset.addEventListener('click', () => {
-            if (Graph) {
-                Graph.zoomToFit(400);
-                state.filters.search = '';
-                els.controls.search.value = '';
+    // --- Restore Default Logic ---
+    // --- Restore Default Logic ---
+    const restoreDefaultState = () => {
+        // User requested page reload for clean reset
+        location.reload();
+    };
 
-                // Reset chips
-                state.filters.req = 'all';
-                chips.forEach(b => b.classList.remove('active'));
 
-                updateView();
-            }
-        });
+
+    const desktopRestoreBtn = document.getElementById('desktop-restore-btn');
+    if (desktopRestoreBtn) {
+        desktopRestoreBtn.addEventListener('click', restoreDefaultState);
     }
 
-    if (els.controls.btnZoomIn) els.controls.btnZoomIn.addEventListener('click', () => { if (Graph) Graph.zoom(Graph.zoom() * 1.2, 200); });
-    if (els.controls.btnZoomOut) els.controls.btnZoomOut.addEventListener('click', () => { if (Graph) Graph.zoom(Graph.zoom() / 1.2, 200); });
+    els.controls.btnReset.addEventListener('click', () => {
+        if (Graph) {
+            try { Graph.zoomToFit(400); } catch (e) { console.warn("Zoom error:", e); }
+            state.filters.search = '';
+            els.controls.search.value = '';
+
+            // Reset chips
+            state.filters.req = 'all';
+            chips.forEach(b => b.classList.remove('active'));
+
+            // Reset Chapter (Removed)
+            state.filters.chapter = 'all';
+
+            updateView();
+            closeSidebarOnMobile();
+        }
+    });
+
 
     if (els.openSidebarBtn) {
         els.openSidebarBtn.addEventListener('click', () => {
-            els.chapterNav.classList.remove('closed');
-            els.openSidebarBtn.classList.add('hidden');
+            // Check if sidebar is currently closed
+            if (els.chapterNav.classList.contains('closed')) {
+                els.chapterNav.classList.remove('closed');
+                // Button remains visible
+            } else {
+                // If already open (mobile case), close it
+                els.chapterNav.classList.add('closed');
+                // Button remains visible
+            }
         });
     }
 
     if (els.closeNavBtn) {
         els.closeNavBtn.addEventListener('click', () => {
             els.chapterNav.classList.add('closed');
-            els.openSidebarBtn.classList.remove('hidden');
-            if (state.sidebarPinned) togglePin();
+            // els.openSidebarBtn.classList.remove('hidden'); // Always visible now
         });
     }
 
-    if (els.pinNavBtn) els.pinNavBtn.addEventListener('click', togglePin);
+    // if (els.pinNavBtn) els.pinNavBtn.addEventListener('click', togglePin);
 
     if (document.getElementById('close-detail')) {
         document.getElementById('close-detail').addEventListener('click', () => {
@@ -387,20 +511,56 @@ function initUI() {
             }
         });
     }
+
+    // --- Mobile Toggles ---
+    if (els.controls.mobileSearchBtn) {
+        els.controls.mobileSearchBtn.addEventListener('click', () => {
+            els.controls.searchContainer.classList.add('active');
+            els.controls.search.focus();
+            closeSidebarOnMobile();
+        });
+    }
+
+    if (els.controls.closeSearchBtn) {
+        els.controls.closeSearchBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent search container from staying active if we used click outside logic
+            els.controls.searchContainer.classList.remove('active');
+            state.filters.search = '';
+            els.controls.search.value = '';
+            updateView();
+        });
+    }
+
+    if (els.controls.mobileFilterBtn) {
+        els.controls.mobileFilterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            els.controls.filterChips.classList.toggle('show');
+            els.controls.mobileFilterBtn.classList.toggle('active');
+            closeSidebarOnMobile();
+        });
+    }
+
+    // Click outside to close filters AND search (Mobile)
+    document.addEventListener('click', (e) => {
+        // Close filters
+        if (els.controls.filterChips &&
+            !els.controls.filterChips.contains(e.target) &&
+            !els.controls.mobileFilterBtn.contains(e.target)) {
+            els.controls.filterChips.classList.remove('show');
+            if (els.controls.mobileFilterBtn) els.controls.mobileFilterBtn.classList.remove('active');
+        }
+
+        // Close search
+        if (els.controls.searchContainer &&
+            els.controls.searchContainer.classList.contains('active') &&
+            !els.controls.searchContainer.contains(e.target) &&
+            !els.controls.mobileSearchBtn.contains(e.target)) {
+            els.controls.searchContainer.classList.remove('active');
+        }
+    });
 }
 
-function togglePin() {
-    state.sidebarPinned = !state.sidebarPinned;
-    if (state.sidebarPinned) {
-        document.body.classList.add('pinned');
-        els.pinNavBtn.classList.add('active');
-        els.chapterNav.classList.remove('closed');
-        els.openSidebarBtn.classList.add('hidden');
-    } else {
-        document.body.classList.remove('pinned');
-        els.pinNavBtn.classList.remove('active');
-    }
-}
+// function togglePin() { ... } Removed
 
 function exportImage() {
     // 1. Show Loading Indicator
@@ -503,7 +663,12 @@ function processFilterOptions() {
             icon.className = collapsed ? 'fa-solid fa-folder' : 'fa-solid fa-folder-open';
         };
 
-        btn.innerHTML = `<i class="fa-solid fa-folder"></i> 第${c.id}章`;
+        const cTitle = state.currentLang === 'CN' ? `第${c.id}章 ${c.title}` : `Chapter ${c.id}: ${c.title}`;
+        // c.title might be just "Phonetics", so "Chapter 1: Phonetics" work well. 
+        // Actually, let's keep it simple: "Chapter X" vs "第X章"
+        const cLabel = state.currentLang === 'CN' ? `第${c.id}章` : `Chapter ${c.id}`;
+
+        btn.innerHTML = `<i class="fa-solid fa-folder"></i> ${cLabel}`;
         btn.onclick = () => {
             const secList = item.querySelector('.section-list');
             if (secList) {
@@ -524,7 +689,15 @@ function processFilterOptions() {
 
             const secBtn = document.createElement('button');
             secBtn.className = 'section-btn';
-            const sTitle = s.title.split('（')[0] || s.title;
+
+            let sTitle = s.title;
+            if (state.currentLang === 'EN') {
+                // Remove Chinese characters and parentheses
+                sTitle = s.title.replace(/[\u4e00-\u9fa5]/g, '').replace(/[（）()]/g, '').trim();
+            } else {
+                // Keep only Chinese part (before parenthesis)
+                sTitle = s.title.split('（')[0] || s.title;
+            }
 
             // Toggle Icon helper for section
             const updateSectionIcon = (collapsed) => {
@@ -585,14 +758,21 @@ function renderGraph() {
     const { nodes, links } = getFilteredGraphData();
 
     Graph = ForceGraph()(elem)
+        .width(elem.offsetWidth)
+        .height(elem.offsetHeight)
         .graphData({ nodes, links })
         .backgroundColor('#050510')
         .nodeColor('color')
         .nodeVal('val')
-        .linkColor(() => 'rgba(255,255,255,0.15)')
+        .linkColor(() => 'rgba(255,255,255,0.3)') // Thicker/Brighter
+        .linkWidth(1.5) // Thicker lines
         .onNodeClick(handleNodeClick)
         .onBackgroundClick(() => {
             if (els.sidebarDetail) els.sidebarDetail.classList.add('hidden');
+            // Mobile: Close TOC on background click
+            if (window.innerWidth <= 768 && els.chapterNav && !els.chapterNav.classList.contains('closed')) {
+                els.chapterNav.classList.add('closed');
+            }
         })
         .enableNodeDrag(true)
         .enableZoomInteraction(true)
@@ -614,6 +794,10 @@ function renderGraph() {
         .nodeCanvasObject((node, ctx, globalScale) => {
             if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
 
+            // Ensure Icon Font is loaded/set
+            // We use standard font logic below
+
+
             const label = state.currentLang === 'CN' ? (node.name_cn || node.name) : (node.name_en || node.name);
             const fontSize = 12 / globalScale;
 
@@ -628,17 +812,21 @@ function renderGraph() {
                 // Nucleus - Glowing Core
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = '#ffffff';
+
+                // Book Icon
                 ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI);
-                ctx.fill();
+                ctx.font = `900 ${node.val * 1.5}px "Font Awesome 6 Free"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('\uf02d', node.x, node.y); // Book Open Icon
+
                 ctx.shadowBlur = 0;
 
                 // Orbit Rings
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, node.val + 8, 0, 2 * Math.PI);
+                ctx.arc(node.x, node.y, node.val + 10, 0, 2 * Math.PI);
                 ctx.stroke();
 
             } else if (node.type === 'chapter') {
@@ -674,49 +862,47 @@ function renderGraph() {
             } else if (node.type === 'section') {
                 // Satellite
                 ctx.fillStyle = baseColor;
-                ctx.shadowBlur = isActive ? 10 : 0;
-                ctx.shadowColor = baseColor;
-
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI);
+                ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI);
                 ctx.fill();
-                ctx.shadowBlur = 0;
 
-                // Outer Ring
-                ctx.strokeStyle = baseColor;
-                ctx.lineWidth = 1;
+                // Ring
+                ctx.strokeStyle = "rgba(255,255,255,0.2)";
                 ctx.beginPath();
-                ctx.arc(node.x, node.y, 7, 0, 2 * Math.PI);
+                ctx.arc(node.x, node.y, node.val + 2, 0, 2 * Math.PI);
                 ctx.stroke();
-
             } else {
-                // Knowledge Point (Star/Particle)
-                const reqColor = node.color; // Use requirement color
-                ctx.fillStyle = reqColor;
-
-                if (isActive) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = reqColor;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-
-                    // Crosshair / Target reticle
-                    ctx.strokeStyle = reqColor;
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI);
-                    ctx.stroke();
-                } else {
-                    ctx.globalAlpha = 0.8;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, 2.5, 0, 2 * Math.PI);
-                    ctx.fill();
-                    ctx.globalAlpha = 1;
-                }
+                // Points (Small dots)
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI);
+                ctx.fill();
             }
 
+            // --- LABELS ---
+            if (node.type !== 'root') { // Label logic (Root label removed, implicit in icon?) No, keep label if needed.
+                // Existing Label Logic seems to draw label after this block? 
+                // Wait, I need to see where label is drawn.
+                // The existing code *was* drawing labels? 
+                // Ah, line 792 defines `label`. But lines 860+ (not shown fully) likely draw it.
+                // I will assume the label drawing code is *after* the if/else block I'm editing.
+                // I only replaced the `if/else` node drawing part.
+                // But wait, the previous `view_file` stopped at line 850.
+                // Use `replace` carefully.
+            }
+
+            // Re-adding the label logic part if I can't see it?
+            // "Showing lines 750 to 850".
+            // The block ends at 850.
+            // My chunks cover 803-817, 757, 783.
+            // I am NOT touching the label logic below 850.
+            // Good.
+
+            /*
+            const labelDist = node.val + 6;
+            ctx.font = `${fontSize}px Sans-Serif`;
+            // ...
+            */
             // --- LABELS ---
             const showLabel = globalScale > 1.2 || node.type === 'root' || node.type === 'chapter' || isActive;
 
@@ -753,9 +939,14 @@ function renderGraph() {
                 }
             }
         });
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+        Graph.width(elem.offsetWidth);
+        Graph.height(elem.offsetHeight);
+    });
 }
 
-// function updateView() { ... } replaced by debounced version below
 
 function handleNodeClick(node) {
     try {
@@ -809,10 +1000,7 @@ function handleSidebarClick(id, type) {
             }, 100);
         }
 
-        if (!state.sidebarPinned) {
-            els.chapterNav.classList.add('closed');
-            els.openSidebarBtn.classList.remove('hidden');
-        }
+
     } catch (e) {
         window.onerror("Sidebar Click Error: " + e.message, "app.js", 0, 0, e);
     }
@@ -828,11 +1016,23 @@ function showDetail(data, color) {
         const isCN = state.currentLang === 'CN';
         els.detail.title.textContent = isCN ? data.title_cn : data.title_en;
         els.detail.id.textContent = `ID: ${data.id}`;
-        els.detail.req.textContent = data.syllabus_req || data.requirement;
+
+        const reqKey = data.syllabus_req || data.requirement;
+        const reqText = translations[state.currentLang].req[reqKey] || reqKey;
+        els.detail.req.textContent = reqText;
+
         els.detail.defEn.textContent = data.definition_en;
         els.detail.defCn.textContent = data.definition_cn;
         els.detail.exEn.textContent = data.example_en;
         els.detail.exCn.textContent = data.example_cn;
+
+        // Headers translation
+        document.querySelectorAll('[data-lang]').forEach(el => {
+            const key = el.getAttribute('data-lang');
+            if (translations[state.currentLang][key]) {
+                el.textContent = translations[state.currentLang][key];
+            }
+        });
     } catch (e) {
         window.onerror("Show Detail Error: " + e.message, "app.js", 0, 0, e);
     }
@@ -884,13 +1084,16 @@ function renderWaterfall() {
 
                 const sectionTag = `<span class="badge" style="background:#333; color:#aaa; margin-right:5px;">${p.tempSectionTitle}</span>`;
 
+                const pDesc = state.currentLang === 'CN' ? p.definition_cn : p.definition_en;
+                const reqText = translations[state.currentLang].req[p.requirement] || p.requirement;
+
                 card.innerHTML = `
                     <div class="wf-title">${pTitle}</div>
                     <div class="wf-meta">
                         ${sectionTag}
-                        <span class="badge" style="background:${rColor}22; color:${rColor}">${p.requirement}</span>
+                        <span class="badge" style="background:${rColor}22; color:${rColor}">${reqText}</span>
                     </div>
-                    <div class="wf-desc">${p.definition_cn}</div>
+                    <div class="wf-desc">${pDesc}</div>
                 `;
                 card.onclick = (e) => {
                     e.stopPropagation();
@@ -929,8 +1132,37 @@ function updateView() {
     }, 10);
 }
 
-function updateBilingualUI() { processFilterOptions(); }
-function toggleLang() { state.currentLang = state.currentLang === 'CN' ? 'EN' : 'CN'; updateBilingualUI(); updateView(); }
+function updateBilingualUI() {
+    processFilterOptions();
+    const dict = translations[state.currentLang];
+
+    // UI Elements
+    document.querySelectorAll('[data-lang]').forEach(el => {
+        const key = el.getAttribute('data-lang');
+        if (dict[key]) el.textContent = dict[key];
+    });
+
+    // Placeholders
+    document.querySelectorAll('[data-ph]').forEach(el => {
+        const key = el.getAttribute('data-ph');
+        if (dict[key]) el.placeholder = dict[key];
+    });
+
+    // Filter Chips
+    const chips = document.querySelectorAll('.chip-btn');
+    chips.forEach(btn => {
+        const reqKey = btn.getAttribute('data-req');
+        if (dict.req[reqKey]) {
+            btn.textContent = dict.req[reqKey];
+        }
+    });
+}
+function toggleLang() {
+    state.currentLang = state.currentLang === 'CN' ? 'EN' : 'CN';
+    if (els.controls.langToggle) els.controls.langToggle.textContent = state.currentLang;
+    updateBilingualUI();
+    updateView();
+}
 
 function switchView(view) {
     try {
@@ -961,3 +1193,9 @@ function switchView(view) {
     }
 }
 function adjustColor(color, amount) { return color; }
+
+function closeSidebarOnMobile() {
+    if (window.innerWidth <= 768 && els.chapterNav && !els.chapterNav.classList.contains('closed')) {
+        els.chapterNav.classList.add('closed');
+    }
+}

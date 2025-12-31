@@ -23,49 +23,60 @@
     <div id="stars"></div>
     <div id="stars2"></div>
     <div id="app">
-        <!-- Re-open sidebar button (floating) -->
-        <button id="open-sidebar-btn" class="hidden"><i class="fa-solid fa-bars"></i></button>
+
 
         <!-- Navigation / TOC -->
-        <nav id="chapter-nav" class="sidebar-left closed">
-            <div class="nav-header">
-                <h2><i class="fa-solid fa-book-open"></i> <span data-lang="chapters">Chapters</span></h2>
-                <div class="nav-controls">
-                    <button id="pin-nav" class="nav-btn" title="Pin Sidebar"><i
-                            class="fa-solid fa-thumbtack"></i></button>
-                    <button id="close-nav" class="nav-btn"><i class="fa-solid fa-times"></i></button>
-                </div>
-            </div>
-            <div class="nav-content" id="chapter-list">
-                <!-- Chapter items injected here -->
-            </div>
-        </nav>
-
         <!-- Main Workspace -->
         <main id="workspace">
+            <!-- Navigation / TOC -->
+            <nav id="chapter-nav" class="sidebar-left closed">
+                <div class="nav-header">
+                    <h2><i class="fa-solid fa-book-open"></i> <span data-lang="chapters">Chapters</span></h2>
+                    <div class="nav-controls">
+                        <button id="close-nav" class="nav-btn"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="nav-content" id="chapter-list">
+                    <!-- Chapter items injected here -->
+                </div>
+            </nav>
+
             <!-- Controls Overlay -->
             <div id="controls-overlay">
-                <div class="search-box">
-                    <i class="fa-solid fa-search"></i>
-                    <input type="text" id="search-input" placeholder="Search knowledge..." data-ph="searchPlaceholder">
+                <button id="open-sidebar-btn"><i class="fa-solid fa-bars"></i></button>
+                <div class="search-box" id="search-container">
+                    <button id="mobile-search-btn" class="mobile-toggle"><i class="fa-solid fa-search"></i></button>
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-search desktop-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search knowledge..."
+                            data-ph="searchPlaceholder">
+                        <button id="close-search-btn" class="mobile-toggle hidden"><i
+                                class="fa-solid fa-times"></i></button>
+                    </div>
                 </div>
 
-                <div class="filter-chips">
-                    <button class="chip-btn" data-req="识记" style="--c: #4cc9f0;">识记</button>
-                    <button class="chip-btn" data-req="领会" style="--c: #4361ee;">领会</button>
-                    <button class="chip-btn" data-req="简单应用" style="--c: #f72585;">简单应用</button>
-                    <button class="chip-btn" data-req="综合应用" style="--c: #e63946;">综合应用</button>
+                <div class="filter-group">
+
+                    <button id="mobile-filter-btn" class="mobile-toggle"><i class="fa-solid fa-filter"></i></button>
+                    <div class="filter-chips" id="filter-chips">
+                        <button class="chip-btn" data-req="识记" style="--c: #4cc9f0;">识记</button>
+                        <button class="chip-btn" data-req="领会" style="--c: #4361ee;">领会</button>
+                        <button class="chip-btn" data-req="简单应用" style="--c: #f72585;">简单应用</button>
+                        <button class="chip-btn" data-req="综合应用" style="--c: #e63946;">综合应用</button>
+                    </div>
                 </div>
+
 
                 <div class="view-toggles">
-                    <button id="btn-reset" title="Reset View"><i class="fa-solid fa-compress-arrows-alt"></i></button>
-                    <button id="btn-zoom-in" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
-                    <button id="btn-zoom-out" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+                    <button id="desktop-restore-btn" title="Restore Default"><i
+                            class="fa-solid fa-rotate-left"></i></button>
+                    <button id="btn-reset" title="Zoom to Fit"><i class="fa-solid fa-compress-arrows-alt"></i></button>
+
                     <div class="divider-vertical"></div>
                     <button class="active" data-view="mindmap" title="Mind Map"><i
                             class="fa-solid fa-project-diagram"></i></button>
                     <button data-view="waterfall" title="List View"><i class="fa-solid fa-list-ul"></i></button>
-                    <button id="lang-toggle">EN / CN</button>
+                    <button id="lang-toggle">CN</button>
                 </div>
             </div>
 
@@ -115,7 +126,8 @@
         </aside>
     </div>
 
-    <script src="js/app.js?v=2"></script>
+    <script src="js/data.js"></script>
+    <script src="js/app.js?v=3"></script>
 </body>
 
 </html>

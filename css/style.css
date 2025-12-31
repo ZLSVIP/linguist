@@ -120,8 +120,9 @@ body {
 }
 
 .sidebar-left.closed {
-    transform: translateX(-300px);
+    transform: translateX(-100%);
     /* Fully hide */
+    box-shadow: none;
 }
 
 /* Pinned State */
@@ -142,6 +143,15 @@ body.pinned .sidebar-left {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* Ensure workspace clips off-screen sidebar */
+#workspace {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Clips sidebar when closed */
 }
 
 .nav-header h2 {
@@ -258,6 +268,13 @@ body.pinned .sidebar-left {
     min-width: 250px;
 }
 
+/* Wrapper for desktop to match structure */
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
 .search-box input {
     background: transparent;
     border: none;
@@ -265,6 +282,14 @@ body.pinned .sidebar-left {
     outline: none;
     width: 100%;
     font-family: var(--font-cn);
+    margin-left: 8px;
+    /* Gap for icon */
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .filter-chips {
@@ -272,6 +297,8 @@ body.pinned .sidebar-left {
     gap: 8px;
     pointer-events: auto !important;
 }
+
+
 
 .chip-btn {
     background: transparent;
@@ -343,9 +370,11 @@ body.pinned .sidebar-left {
 .sidebar-right {
     position: absolute;
     right: 0;
-    top: 0;
+    top: 80px;
+    /* Below Toolbar */
     width: 400px;
-    height: 100%;
+    height: calc(100% - 80px);
+    /* Full height minus toolbar */
     background: var(--sidebar-bg);
     border-left: 1px solid var(--border-color);
     z-index: 100;
@@ -456,14 +485,16 @@ body.pinned .sidebar-left {
 /* Waterfall View */
 #waterfall-container {
     position: absolute;
-    top: 0;
+    top: 80px;
+    /* Below Toolbar */
     left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 80px);
+    /* Fill remaining height */
     background: var(--bg-color);
     z-index: 40;
     /* Below overlays */
-    padding: 100px 50px 50px 100px;
+    padding: 20px 50px;
     overflow-y: auto;
 }
 
@@ -655,149 +686,341 @@ body.pinned .sidebar-left {
 
 /* Open Sidebar Button (when closed) */
 #open-sidebar-btn {
-    position: absolute;
-    top: 80px;
-    /* Moved down to avoid overlap with search bar */
-    left: 20px;
-    z-index: 200;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    padding: 10px;
-    border-radius: 8px;
+    /* Positioned in flow now */
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 5px 10px;
     cursor: pointer;
-    backdrop-filter: blur(5px);
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    border-radius: 4px;
+    pointer-events: auto;
+}
+
+#open-sidebar-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 #open-sidebar-btn.hidden {
     display: none;
 }
 
+/* Mobile Toggles Hidden on Desktop */
+.mobile-toggle {
+    display: none;
+}
+
+#close-search-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
 /* --- MOBILE ADAPTATION --- */
 @media (max-width: 768px) {
 
     /* 1. Layout Adjustments */
+    /* 1. Layout Adjustments */
+    /* 1. Layout Adjustments: Static Header, No Scroll */
     #controls-overlay {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        right: auto;
-        width: calc(100% - 40px);
-        pointer-events: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 60px;
+        padding: 0 15px;
+        background: linear-gradient(to bottom, rgba(5, 5, 10, 0.98) 0%, rgba(5, 5, 10, 0.9) 100%);
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        /* Distribute evenly */
+        gap: 15px;
+        overflow: visible !important;
+        /* Allow dropdowns */
+        z-index: 500;
+        /* High z-index */
+        pointer-events: auto;
+        /* Ensure updated to capture clicks on bar if needed, though children capture mostly */
     }
 
-    /* Fix: Prevent workspace shift on mobile even if pinned */
-    body.pinned #workspace {
-        margin-left: 0 !important;
-        width: 100% !important;
+    #controls-overlay>* {
+        flex-shrink: 0;
+        pointer-events: auto;
     }
 
+    /* Scrollbar hidden (just in case) */
+    #controls-overlay::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* --- Search Collapsed State --- */
     .search-box {
-        width: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-        padding: 5px 10px;
-        border-radius: 8px;
-    }
-
-    .filter-chips {
-        flex-wrap: wrap;
-        width: 100%;
-        gap: 5px;
-    }
-
-    .chip-btn {
-        flex: 1;
-        text-align: center;
-        padding: 6px 4px;
-        font-size: 0.75rem;
-    }
-
-    .view-toggles {
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-        padding: 5px;
-        border-radius: 8px;
-        margin-top: 5px;
-    }
-
-    /* 2. Sidebar (Left) - Full Screen on Mobile */
-    .sidebar-left {
-        width: 100%;
-        background: rgba(5, 5, 15, 0.95);
-        transform: translateX(0);
-        /* Default: OPEN/VISIBLE */
-    }
-
-    .sidebar-left.closed {
-        transform: translateX(-100%);
-        /* Closed: HIDDEN */
-    }
-
-    /* 3. Details Sidebar (Right) - Bottom Sheet style or Full Screen */
-    .sidebar-right {
-        width: 100%;
-        height: 70%;
-        top: auto;
-        bottom: 0;
-        transform: translateY(0);
-        /* Default: OPEN/VISIBLE */
-        border-left: none;
-        border-top: 1px solid var(--accent-color);
-        border-radius: 20px 20px 0 0;
-        background: rgba(10, 10, 25, 0.98);
-        z-index: 300;
-        /* CRITICAL: Higher than controls (200) */
-    }
-
-    .sidebar-right.hidden {
-        transform: translateY(100%);
-        /* Hidden: DOWN */
-    }
-
-    /* Close button needs to be easily accessible */
-    #close-detail {
-        top: 15px;
-        right: 15px;
-        background: rgba(255, 255, 255, 0.1);
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
+        position: static;
+        /* Let it sit in flow */
+        width: auto !important;
+        min-width: 0 !important;
+        background: none !important;
+        padding: 0 !important;
+        border: none !important;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    /* 4. Controls Position */
-    #open-sidebar-btn {
-        top: auto;
-        bottom: 30px;
-        left: 20px;
-        z-index: 201;
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+    /* The toggle button (visible on mobile) */
+    .mobile-toggle {
         display: flex !important;
-        /* Force flex to show */
         align-items: center;
         justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        cursor: pointer;
+        z-index: 502;
+    }
+
+    /* The input wrapper (hidden by default) */
+    .search-input-wrapper {
+        display: none !important;
+        /* Force hide */
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        height: 40px;
+        background: #111;
+        border: 1px solid var(--accent-color);
+        border-radius: 20px;
+        z-index: 600;
+        /* Higher than everything */
+        padding: 0 10px;
+        align-items: center;
+    }
+
+    /* Active State (Expanded) */
+    .search-box.active .search-input-wrapper {
+        display: flex !important;
+        /* Force show */
+    }
+
+    /* When active, hide the search toggle button to avoid conflict */
+    .search-box.active #mobile-search-btn {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .search-input-wrapper input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: white;
+        outline: none;
+        padding: 0 10px;
+        font-family: var(--font-cn);
+        display: block;
+    }
+
+    /* Close button inside search */
+    #close-search-btn.mobile-toggle {
+        display: flex !important;
+        width: 30px;
+        height: 30px;
+        border: none;
+        background: none;
+        color: #999;
+    }
+
+    /* --- Filter Collapsed State --- */
+    .filter-group {
+        position: relative;
+    }
+
+    .filter-chips {
+        display: none !important;
+        /* Hidden by default */
+        position: absolute;
+        top: 50px;
+        /* Below header */
+        left: 50%;
+        transform: translateX(-50%);
+        flex-direction: column;
+        background: #151520;
+        border: 1px solid #444;
+        padding: 10px;
+        border-radius: 10px;
+        width: 140px;
+        gap: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        z-index: 600;
+    }
+
+    .filter-chips.show {
+        display: flex !important;
+    }
+
+    .chip-btn {
+        width: 100%;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.9rem;
+        flex: 0 0 auto;
+    }
+
+    /* --- View Toggles --- */
+    .view-toggles {
+        background: none !important;
+        backdrop-filter: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        gap: 8px;
+        display: flex;
+    }
+
+    .view-toggles button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .view-toggles button.active {
+        background: var(--accent-color);
+        color: #000;
+    }
+
+    /* Hide desktop-only elements */
+    .desktop-icon,
+    .divider-vertical {
+        display: none !important;
+    }
+
+    /* 4. Controls Position - Open Sidebar Button */
+    #open-sidebar-btn {
+        position: static;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        box-shadow: none;
+        display: flex !important;
+        /* Force flex here too */
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 0;
+        z-index: 502;
+    }
+
+    /* Reduce Search Width */
+    .search-box.active .search-input-wrapper {
+        display: flex !important;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 250px;
+        /* Fixed smaller width */
+        right: auto;
+        /* Override right 10px */
+    }
+}
+
+/* DESKTOP TWEAKS */
+@media (min-width: 769px) {
+
+    /* Show Directory button on desktop too, in the toolbar */
+    #open-sidebar-btn {
+        display: flex !important;
+        /* Override display:none */
+        position: relative;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        width: auto;
+        height: auto;
         font-size: 1.2rem;
+        cursor: pointer;
+        margin-right: 15px;
+        /* Spacing from search */
     }
 
-    /* Move pinned button logic? Mobile shouldn't really 'pin' sidebars usually */
-    #pin-nav {
-        display: none;
+    #open-sidebar-btn:hover {
+        color: var(--accent-color);
     }
 
-    /* Waterfall padding */
+    /* Ensure it's hidden if we want the floating one behavior? 
+       Actually user wants it in toolbar.
+       Removing the old floating logic if inconsistent. */
+
+    /* Desktop Sidebar adjustment */
+    .sidebar-left {
+        top: 80px;
+        /* Below Toolbar */
+        left: 0;
+        /* Far Left of Canvas */
+        height: calc(100% - 80px);
+        /* Full height below toolbar */
+        border-top: 1px solid var(--border-color);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        /* Shadow to right */
+        background: rgba(10, 10, 20, 0.95);
+        /* Opaque background */
+        border-radius: 0 10px 10px 0;
+        /* Optional: Rounded right edge */
+    }
+
+    /* Persistent Sidebar Layout - OVERLAY Mode */
+    /* When Sidebar is Open (Default) */
+    #workspace {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* Fix Detail Sidebar Top Spacing / Overlap (Mobile) */
+@media (max-width: 768px) {
+    .sidebar-right {
+        /* Ensure it doesn't cover the top toolbar */
+        top: auto;
+        bottom: 0;
+        height: calc(100% - 70px);
+        /* Reduce height to not touch top */
+        border-top: 1px solid var(--accent-color);
+        z-index: 600;
+    }
+
+    /* Waterfall padding adjustment */
     #waterfall-container {
-        padding: 180px 20px 80px 20px;
-        /* More top padding for stacked controls */
+        padding: 90px 20px 80px 20px;
     }
 
     .wf-grid {
         grid-template-columns: 1fr;
-        /* Single column */
+    }
+
+    /* Fix sidebar width */
+    .sidebar-left {
+        width: 100%;
+        max-width: 80vw;
+        /* Don't cover fully so we can click out? Or full? User said full previously */
+    }
+
+    /* Fix workspace when pinned (though pinned is hidden) */
+    body.pinned #workspace {
+        margin-left: 0 !important;
+        width: 100% !important;
     }
 }
